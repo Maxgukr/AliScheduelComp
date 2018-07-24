@@ -148,7 +148,7 @@ def calOneMachineRest(inst_id, machine_id, machineRescouce, appResource, inst2Ap
 
     rest = machineRescouce[machine_id] - appResource[inst2App[inst_id]-1] # 序号到数组需要-1
 
-    if len([i for i in rest if i <0])!=0 : # 资源超分或者cpu利用率太高
+    if len([i for i in rest if i <0])!=0 : # 资源超分
         return machineRescouce[machine_id], False
     else:
         return rest, True
@@ -296,7 +296,7 @@ def magriteF1_F2(machine_rest_null_0, machine_rest_not_null_0,
                             break # 放完一个inst就退出该层循环
     print('magriting over!')
 
-def alloc_120_1024(inst_disk, machine_rest_null_3000,
+def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                    machineApps, machineResource, appResource,
                    appInterference, inst2App, res, inst2Machine):
     '''
@@ -323,6 +323,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m-1] = rest_tmp
 
                         inst_disk[1024].remove(inst)
@@ -346,6 +347,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -375,6 +377,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m)) # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -404,6 +407,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -433,6 +437,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -464,6 +469,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_disk[200].remove(inst)
@@ -489,6 +495,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -517,6 +524,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -546,6 +554,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -572,6 +581,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -600,6 +610,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
                         res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -619,7 +630,7 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000,
         else:
             break
 
-def alloc_40_100(inst_disk, machine_rest_null,
+def alloc_40_100(inst_disk, machine_rest_null, machineInsts,
                    machineApps, machineResource, appResource,
                    appInterference, inst2App, res, inst2Machine):
     '''
@@ -634,7 +645,7 @@ def alloc_40_100(inst_disk, machine_rest_null,
     :param res:
     :return:
     '''
-    inst_list = inst_disk[60] + inst_disk[40] + inst_disk[100] + inst_disk[80]
+    inst_list = inst_disk[60] + inst_disk[100]+ inst_disk[80] + inst_disk[40]
     random.shuffle(inst_list)
     while len(inst_list)!=0:
         for inst in inst_list:
@@ -648,6 +659,7 @@ def alloc_40_100(inst_disk, machine_rest_null,
                         res.append('inst_' + str(inst)+','+'machine_' + str(m))  # write magrite processment
 
                         machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
@@ -657,6 +669,65 @@ def alloc_40_100(inst_disk, machine_rest_null,
                             print(rest_tmp[196])
                             machine_rest_null.remove(m)
                         break # 放完一个inst就退出该层循环
+
+def magriteOverLoad(machineResource, machineInsts, machine_rest_null,
+                    appInterference, machineApps, inst2App,
+                    appResource, inst2Machine, res):
+    '''
+    cpu占用度过高的做迁移
+    :param machineResource:
+    :param machineInsts:
+    :return:
+    '''
+    # 理论上规格更大的虚拟机已经用完了，而且资源过度的概率比较低；规格较小的资源过度的概率较高
+    machine_need_magrite = []
+    for i in range(6000):
+        if i+1>3000:
+            cpu = 92
+        else:
+            cpu = 32
+        if len([j for j in machineResource[i][0:97] if j < float(0.5*cpu)]) > 40:
+            machine_need_magrite.append(i+1)
+
+    cpu = 32
+    cnt = 0
+    # 把过载的机器迁移到空的机器中
+    while(len(machine_need_magrite)!=0):
+        for m_c in machine_need_magrite:
+            if len([j for j in machineResource[m_c - 1][0:97] if j < float(0.5 * cpu)]) < 40:
+                machine_need_magrite.remove(m_c)
+                break
+            for inst in machineInsts[m_c]:
+                for m in machine_rest_null:
+
+                    rest_tmp, logitic = calOneMachineRest(inst, m - 1, machineResource, appResource, inst2App)
+                    # 判断nachine剩余资源状态
+                    if logitic == True:  # 可以容下
+                        if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                            inst2Machine[inst] = m
+                            res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                            #machineApps[m_c].remove(inst2App[inst])
+                            machineApps[m].append(inst2App[inst])
+
+                            machineInsts[m].append(inst)
+                            #machineInsts[m_c].remove(inst)
+
+                            machineResource[m_c - 1] += appResource[inst2App[inst]-1]
+                            machineResource[m - 1] = rest_tmp
+
+
+                            print(inst, m, cnt)
+                            if len([j for j in machineResource[m-1][0:97] if j < float(0.5 * cpu)])>40:
+                            #if machineResource[m-1][196]<40:
+                                machine_rest_null.remove(m)
+                                cnt += 1
+                            break  # 放完一个inst就退出该层循环
+
+
+
+
 
 
 def main():
@@ -695,8 +766,8 @@ def main():
     machine_rest_null_3000, \
     machine_rest_null_0 = claasifyMachine(machineResource)
 
-    # 首先把非空的规格为【92,288,1024】机器先放完
 
+    # 首先把非空的规格为【92,288,1024】机器先放完
     for inst in inst_to_alloc:
         for m in machine_rest_not_null_3000:
             rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
@@ -718,15 +789,19 @@ def main():
 
     inst_disk = classifyInstByDisk(inst_to_alloc, inst2App, appResource)
 
-    alloc_120_1024(inst_disk, machine_rest_null_3000,
+    alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                    machineApps, machineResource, appResource,
                    appInterference, inst2App, res, inst2Machine)
 
     machine_rest_null = machine_rest_null_3000 + machine_rest_null_0
-    alloc_40_100(inst_disk, machine_rest_null,
+    alloc_40_100(inst_disk, machine_rest_null, machineInsts,
                  machineApps, machineResource, appResource,
                  appInterference, inst2App, res, inst2Machine)
-
+    '''
+    magriteOverLoad(machineResource, machineInsts, machine_rest_null,
+                    appInterference, machineApps, inst2App,
+                    appResource, inst2Machine, res)
+    '''
     inst_rest = underAllocInst(inst2Machine)
     end = time.clock()
     print('time use:', end-start)
