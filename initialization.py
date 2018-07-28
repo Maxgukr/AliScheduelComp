@@ -10,7 +10,12 @@ def loaddata():
     machine_path = "./data/machine_resources_20180606.csv"
     app_resrc_path = "./data/app_resources_20180606.csv"
     app_infer_path = "./data/app_interference_20180606.csv"
-
+    '''
+    inst_path = "./problemB/data/scheduling_preliminary_b_instance_deploy_20180726.csv"
+    machine_path = "./problemB/data/scheduling_preliminary_b_machine_resources_20180726.csv"
+    app_resrc_path = "./problemB/data/scheduling_preliminary_b_app_resources_20180726.csv"
+    app_infer_path = "./problemB/data/scheduling_preliminary_b_app_interference_20180726.csv"
+    '''
     inst2Appid = {} # map inst to appid
     inst2Machine = {} # map inst to machine_id
     appResource = [] # each app rescource
@@ -146,9 +151,13 @@ def magrite(machine_conflict, machineApps, machineInsts,
 
 def calOneMachineRest(inst_id, machine_id, machineRescouce, appResource, inst2App):
 
+    if machine_id + 1 > 3000:
+        cpu = 92
+    else:
+        cpu = 32
     rest = machineRescouce[machine_id] - appResource[inst2App[inst_id]-1] # 序号到数组需要-1
 
-    if len([i for i in rest if i <0])!=0 : # 资源超分
+    if len([i for i in rest if i <0])!=0 :#or len([i for i in rest[0:97] if i < float(0.4*cpu)])!=0 : # 资源超分或资源利用率过高
         return machineRescouce[machine_id], False
     else:
         return rest, True
@@ -290,13 +299,13 @@ def magriteF1_F2(machine_rest_null_0, machine_rest_not_null_0,
                         machineResource[m_c-1] += appResource[inst2App[inst]-1] # 序号到数组需要-1
                         machineResource[m-1] = rest_tmp
                         print(inst, m, cnt)
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_list.remove(m)
+                            #machine_list.remove(m)
                             break # 放完一个inst就退出该层循环
     print('magriting over!')
 
-def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
+def alloc_120_1024(inst_disk, machine_rest, machineInsts,
                    machineApps, machineResource, appResource,
                    appInterference, inst2App, res, inst2Machine):
     '''
@@ -304,16 +313,17 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
     剩余资源与数量的关系为：
     [1024,6],[650,3],[600,12],[500,35],[300,159],[250,12],[200,663],[180,13],[167,38],[150,191],[120,64]
     :param inst_disk: 每种disk包含的inst
-    :param machine_rest_null_3000:规格为2的宿主机集合
+    :param machine_rest:规格为2的宿主机集合
     :return:
     '''
 
     # 从大到小开始组合放置
     cnt = 0
-    for m in machine_rest_null_3000:
+    for m in machine_rest:
         cnt += 1
         if len(inst_disk[1024]) != 0:
-            for inst in inst_disk[1024]:
+            inst_list = inst_disk[1024]
+            for inst in inst_list:
                 rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
                 # 判断nachine剩余资源状态
                 if logitic == True:  # 可以容下
@@ -326,14 +336,46 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                         machineInsts[m].append(inst2App[inst])
                         machineResource[m-1] = rest_tmp
 
-                        inst_disk[1024].remove(inst)
+                        inst_list.remove(inst)
                         #inst_to_alloc.remove(inst)
+                        if inst in inst_disk[1024]:
+                            inst_disk[1024].remove(inst)
+                        elif inst in inst_disk[200]:
+                            inst_disk[200].remove(inst)
 
                         print(inst, m, cnt)
                         #break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
+                            break
+        if len(inst_disk[1000]) != 0:
+            inst_list = inst_disk[1000] + inst_disk[200]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m-1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        #inst_to_alloc.remove(inst)
+                        if inst in inst_disk[1000]:
+                            inst_disk[1000].remove(inst)
+                        elif inst in inst_disk[200]:
+                            inst_disk[200].remove(inst)
+
+                        print(inst, m, cnt)
+                        #break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[650]) != 0:
             inst_list = inst_disk[650] + inst_disk[250] + inst_disk[120]
@@ -361,9 +403,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                             inst_disk[120].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40 :  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[600]) != 0:
             inst_list = inst_disk[600] + inst_disk[300] + inst_disk[120]
@@ -391,9 +433,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                             inst_disk[120].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[500]) != 0:
             inst_list = inst_disk[500] + inst_disk[300] + inst_disk[200]
@@ -421,9 +463,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                             inst_disk[200].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[300]) != 0:
             inst_list = inst_disk[300] + inst_disk[200] + inst_disk[120] + inst_disk[100]
@@ -453,9 +495,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                             inst_disk[100].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[200]) != 0:
             #inst_list = inst_disk[200]
@@ -479,9 +521,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                         #inst_disk[200].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[180]) != 0:
             inst_list = inst_disk[180] + inst_disk[150] + inst_disk[60]
@@ -508,9 +550,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                             inst_disk[60].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[167]) != 0:
             inst_list = inst_disk[167] + inst_disk[150] + inst_disk[80]
@@ -538,9 +580,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                             inst_disk[80].remove(inst)
 
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[150]) != 0:
             inst_list = inst_disk[150] + inst_disk[60]
@@ -565,9 +607,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                         elif inst in inst_disk[60]:
                             inst_disk[60].remove(inst)
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[250]) != 0:
             inst_list = inst_disk[250] + inst_disk[80] + inst_disk[40]
@@ -594,9 +636,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                         elif inst in inst_disk[40]:
                             inst_disk[40].remove(inst)
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         elif len(inst_disk[120]) != 0:
             inst_list = inst_disk[120] + inst_disk[100] + inst_disk[40]
@@ -623,9 +665,9 @@ def alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
                         elif inst in inst_disk[40]:
                             inst_disk[40].remove(inst)
                         # break # 放完一个inst就退出该层循环
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 32)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
-                            machine_rest_null_3000.remove(m)
+                            machine_rest.remove(m)
                             break
         else:
             break
@@ -663,9 +705,12 @@ def alloc_40_100(inst_disk, machine_rest_null, machineInsts,
                         machineResource[m - 1] = rest_tmp
 
                         inst_list.remove(inst)
-
                         print(inst, m, len(inst_list), len(machine_rest_null))
-                        if rest_tmp[196] < 40:  # 判断disk 是否够用
+                        if m>3000:
+                            cpu = 92
+                        else:
+                            cpu = 32
+                        if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.4 * cpu)])!=0:  # 判断disk 是否够用
                             print(rest_tmp[196])
                             machine_rest_null.remove(m)
                         break # 放完一个inst就退出该层循环
@@ -689,12 +734,11 @@ def magriteOverLoad(machineResource, machineInsts, machine_rest_null,
         if len([j for j in machineResource[i][0:97] if j < float(0.5*cpu)]) > 40:
             machine_need_magrite.append(i+1)
 
-    cpu = 32
     cnt = 0
     # 把过载的机器迁移到空的机器中
     while(len(machine_need_magrite)!=0):
         for m_c in machine_need_magrite:
-            if len([j for j in machineResource[m_c - 1][0:97] if j < float(0.5 * cpu)]) < 40:
+            if len([j for j in machineResource[m_c - 1][0:97] if j < float(0.5 * 32)]) < 40:
                 machine_need_magrite.remove(m_c)
                 break
             for inst in machineInsts[m_c]:
@@ -708,27 +752,397 @@ def magriteOverLoad(machineResource, machineInsts, machine_rest_null,
                             inst2Machine[inst] = m
                             res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
 
-                            #machineApps[m_c].remove(inst2App[inst])
+                            machineApps[m_c].remove(inst2App[inst])
                             machineApps[m].append(inst2App[inst])
 
                             machineInsts[m].append(inst)
-                            #machineInsts[m_c].remove(inst)
+                            machineInsts[m_c].remove(inst)
 
                             machineResource[m_c - 1] += appResource[inst2App[inst]-1]
                             machineResource[m - 1] = rest_tmp
 
 
                             print(inst, m, cnt)
-                            if len([j for j in machineResource[m-1][0:97] if j < float(0.5 * cpu)])>40:
+                            if machineResource[m-1][196]<40: #or \
+                                            #len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:
                             #if machineResource[m-1][196]<40:
+                                print(rest_tmp[196])
+                                #print(rest_tmp[0:97])
                                 machine_rest_null.remove(m)
                                 cnt += 1
                             break  # 放完一个inst就退出该层循环
 
+    return
 
 
+def alloc_120_1024_b(inst_disk, machine_rest, machineInsts,
+                   machineApps, machineResource, appResource,
+                   appInterference, inst2App, res, inst2Machine):
+    '''
+    先把disk规模在120-1024disk先放完
+    剩余资源与数量的关系为：
+    [1024,6],[650,3],[600,12],[500,35],[300,159],[250,12],[200,663],[180,13],[167,38],[150,191],[120,64]
+    :param inst_disk: 每种disk包含的inst
+    :param machine_rest:规格为2的宿主机集合
+    :return:
+    '''
 
+    # 从大到小开始组合放置
+    cnt = 0
+    for m in machine_rest:
+        cnt += 1
+        if len(inst_disk[1024]) != 0:
+            inst_list = inst_disk[1024] + inst_disk[60]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
 
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m-1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        #inst_to_alloc.remove(inst)
+                        if inst in inst_disk[1024]:
+                            inst_disk[1024].remove(inst)
+                        elif inst in inst_disk[200]:
+                            inst_disk[200].remove(inst)
+
+                        print(inst, m, cnt)
+                        #break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or \
+                                #len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        if len(inst_disk[1000]) != 0:
+            inst_list = inst_disk[1000] + inst_disk[200]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m-1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        #inst_to_alloc.remove(inst)
+                        if inst in inst_disk[1000]:
+                            inst_disk[1000].remove(inst)
+                        elif inst in inst_disk[200]:
+                            inst_disk[200].remove(inst)
+
+                        print(inst, m, cnt)
+                        #break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or \
+                                #len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[650]) != 0:
+            inst_list = inst_disk[650] + inst_disk[250] + inst_disk[120]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[650]:
+                            inst_disk[650].remove(inst)
+                        elif inst in inst_disk[250]:
+                            inst_disk[250].remove(inst)
+                        elif inst in inst_disk[120]:
+                            inst_disk[120].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[600]) != 0:
+            inst_list = inst_disk[600] + inst_disk[300] + inst_disk[120]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m)) # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[600]:
+                            inst_disk[600].remove(inst)
+                        elif inst in inst_disk[300]:
+                            inst_disk[300].remove(inst)
+                        elif inst in inst_disk[120]:
+                            inst_disk[120].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[500]) != 0:
+            inst_list = inst_disk[500] + inst_disk[300] + inst_disk[200]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[500]:
+                            inst_disk[500].remove(inst)
+                        elif inst in inst_disk[300]:
+                            inst_disk[300].remove(inst)
+                        elif inst in inst_disk[200]:
+                            inst_disk[200].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[300]) != 0:
+            inst_list = inst_disk[300] + inst_disk[200] + inst_disk[120] + inst_disk[100]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[300]:
+                            inst_disk[300].remove(inst)
+                        elif inst in inst_disk[200]:
+                            inst_disk[200].remove(inst)
+                        elif inst in inst_disk[120]:
+                            inst_disk[120].remove(inst)
+                        elif inst in inst_disk[100]:
+                            inst_disk[100].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[200]) != 0:
+            #inst_list = inst_disk[200]
+            for inst in inst_disk[200]:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_disk[200].remove(inst)
+                        print(inst, m, cnt)
+
+                    #if inst in inst_disk[200]:
+                        #inst_disk[200].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[180]) != 0:
+            inst_list = inst_disk[180] + inst_disk[150] + inst_disk[60]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+                        if inst in inst_disk[180]:
+                            inst_disk[180].remove(inst)
+                        elif inst in inst_disk[150]:
+                            inst_disk[150].remove(inst)
+                        elif inst in inst_disk[60]:
+                            inst_disk[60].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[167]) != 0:
+            inst_list = inst_disk[167] + inst_disk[150] + inst_disk[80]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[167]:
+                            inst_disk[167].remove(inst)
+                        elif inst in inst_disk[150]:
+                            inst_disk[150].remove(inst)
+                        elif inst in inst_disk[80]:
+                            inst_disk[80].remove(inst)
+
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[150]) != 0:
+            inst_list = inst_disk[150] + inst_disk[60]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[150]:
+                            inst_disk[150].remove(inst)
+                        elif inst in inst_disk[60]:
+                            inst_disk[60].remove(inst)
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[250]) != 0:
+            inst_list = inst_disk[250] + inst_disk[80] + inst_disk[40]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[250]:
+                            inst_disk[250].remove(inst)
+                        elif inst in inst_disk[80]:
+                            inst_disk[80].remove(inst)
+                        elif inst in inst_disk[40]:
+                            inst_disk[40].remove(inst)
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        elif len(inst_disk[120]) != 0:
+            inst_list = inst_disk[120] + inst_disk[100] + inst_disk[40]
+            for inst in inst_list:
+                rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
+                # 判断nachine剩余资源状态
+                if logitic == True:  # 可以容下
+                    if checkAppInter(inst, m, appInterference, machineApps, inst2App):  # 满足app约束
+
+                        inst2Machine[inst] = m
+                        res.append('inst_' + str(inst) + ',' + 'machine_' + str(m))  # write magrite processment
+
+                        machineApps[m].append(inst2App[inst])
+                        machineInsts[m].append(inst2App[inst])
+                        machineResource[m - 1] = rest_tmp
+
+                        inst_list.remove(inst)
+                        print(inst, m, cnt)
+
+                        if inst in inst_disk[120]:
+                            inst_disk[120].remove(inst)
+                        elif inst in inst_disk[100]:
+                            inst_disk[100].remove(inst)
+                        elif inst in inst_disk[40]:
+                            inst_disk[40].remove(inst)
+                        # break # 放完一个inst就退出该层循环
+                        if rest_tmp[196] < 40 :#or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)]) > 40:  # 判断disk 是否够用
+                            print(rest_tmp[196])
+                            machine_rest.remove(m)
+                            break
+        else:
+            break
 
 def main():
     start = time.clock()
@@ -752,7 +1166,13 @@ def main():
     machine_rest_not_null_0, \
     machine_rest_null_3000, \
     machine_rest_null_0 = claasifyMachine(machineResource)
-
+    '''
+    # 将已部署中资源过载的虚拟机，迁移到大规格的宿主机中，规格大的不会超载
+    
+    magriteOverLoad(machineResource, machineInsts, machine_rest_null_3000,
+                    appInterference, machineApps, inst2App,
+                    appResource, inst2Machine, res)
+    '''
     magriteF1_F2(machine_rest_null_0, machine_rest_not_null_0,
                  machineApps, machineInsts,
                  inst2Machine, machineResource, appResource,
@@ -760,14 +1180,10 @@ def main():
 
     # rest insts to alloc
     inst_to_alloc = underAllocInst(inst2Machine)
-
-    machine_rest_not_null_3000, \
-    machine_rest_not_null_0, \
-    machine_rest_null_3000, \
-    machine_rest_null_0 = claasifyMachine(machineResource)
-
-
+    #random.shuffle(inst_to_alloc)
+    #machine_list = [i+1 for i in range(6000)]
     # 首先把非空的规格为【92,288,1024】机器先放完
+    #while(len(inst_to_alloc)!=0):
     for inst in inst_to_alloc:
         for m in machine_rest_not_null_3000:
             rest_tmp, logitic = calOneMachineRest(inst, m-1, machineResource, appResource, inst2App)
@@ -780,28 +1196,30 @@ def main():
                     machineResource[m - 1] = rest_tmp
                     inst_to_alloc.remove(inst)
                     #inst_to_0.remove(inst)
-                    print(inst, m, len(machine_rest_not_null_3000))
+                    print(inst, m, len(inst_to_alloc), len(machine_rest_not_null_3000))
                     # break # 放完一个inst就退出该层循环
-                    if rest_tmp[196] < 40:  # 判断disk 是否够用
+                    if rest_tmp[196] < 40 or len([j for j in machineResource[m-1][0:97] if j < float(0.5 * 92)])!=0:  # 判断disk 是否够用
                         print(rest_tmp[196])
+                        #print(rest_tmp[0:97])
                         machine_rest_not_null_3000.remove(m)
                     break
 
     inst_disk = classifyInstByDisk(inst_to_alloc, inst2App, appResource)
-
-    alloc_120_1024(inst_disk, machine_rest_null_3000, machineInsts,
+    
+    #machine_rest = machine_rest_not_null_0+machine_rest_not_null_3000
+    alloc_120_1024(inst_disk, machine_rest_null_0, machineInsts,
                    machineApps, machineResource, appResource,
                    appInterference, inst2App, res, inst2Machine)
 
-    machine_rest_null = machine_rest_null_3000 + machine_rest_null_0
+    machine_rest_null = machine_rest_not_null_3000 + machine_rest_null_3000 + machine_rest_null_0
     alloc_40_100(inst_disk, machine_rest_null, machineInsts,
                  machineApps, machineResource, appResource,
                  appInterference, inst2App, res, inst2Machine)
-    '''
+    
     magriteOverLoad(machineResource, machineInsts, machine_rest_null,
                     appInterference, machineApps, inst2App,
                     appResource, inst2Machine, res)
-    '''
+
     inst_rest = underAllocInst(inst2Machine)
     end = time.clock()
     print('time use:', end-start)
